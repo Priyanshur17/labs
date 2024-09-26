@@ -1,0 +1,278 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <omp.h>
+
+#define N 100
+#define B 10  // Block size
+
+void matrix_multiply(int A[N][N], int B[N][N], int C[N][N], int row, int col, int block_size) {
+    for (int k = 0; k < N; k++) {
+        for (int i = row; i < row + block_size; i++) {
+            for (int j = col; j < col + block_size; j++) {
+                C[i][j] += A[i][k] * B[k][j];
+            }
+        }
+    }
+}
+
+void multiply_matrices(int A[N][N], int B[N][N], int C[N][N]) {
+    #pragma omp parallel
+    {
+        #pragma omp parallel for schedule(dynamic)
+        for (int i = 0; i < N; i += B) {
+            for (int j = 0; j < N; j += B) {
+                #pragma omp task
+                matrix_multiply(A, B, C, i, j, B);
+            }
+        }
+    }
+}
+//ASSIGNMENT 8 Q1
+
+int main() {
+    int A[N][N], B[N][N], C[N][N];
+
+    // Initialize matrices A and B with some values (for demonstration)
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            A[i][j] = i + j;
+            B[i][j] = i - j;
+            C[i][j] = 0;
+        }
+    }
+
+    // Multiply matrices A and B using OpenMP tasks
+    multiply_matrices(A, B, C);
+
+    // Print the result matrix (for demonstration)
+    printf("Result Matrix:\n");
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            printf("%d ", C[i][j]);
+        }
+        printf("\n");
+    }
+
+    return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <omp.h>
+
+void merge(int arr[], int l, int m, int r) {
+    int i, j, k;
+    int n1 = m - l + 1;
+    int n2 = r - m;
+
+    // create temporary arrays
+    int L[n1], R[n2];
+
+    // Copy data to temporary arrays L[] and R[]
+    for (i = 0; i < n1; i++)
+        L[i] = arr[l + i];
+    for (j = 0; j < n2; j++)
+        R[j] = arr[m + 1 + j];
+
+    // Merge the temporary arrays back into arr[l..r]
+    i = 0;  // Initial index of first subarray
+    j = 0;  // Initial index of second subarray
+    k = l;  // Initial index of merged subarray
+    while (i < n1 && j < n2) {
+        if (L[i] <= R[j]) {
+            arr[k] = L[i];
+            i++;
+        } else {
+            arr[k] = R[j];
+            j++;
+        }
+        k++;
+    }
+
+    // Copy the remaining elements of L[], if there are any
+    while (i < n1) {
+        arr[k] = L[i];
+        i++;
+        k++;
+    }
+
+    // Copy the remaining elements of R[], if there are any
+    while (j < n2) {
+        arr[k] = R[j];
+        j++;
+        k++;
+    }
+}
+
+void mergeSort(int arr[], int l, int r) {
+    if (l < r) {
+        int m = l + (r - l) / 2;
+
+        // Use OpenMP tasks to parallelize the recursive calls
+        #pragma omp parallel
+        {
+            #pragma omp single
+            {
+                #pragma omp task
+                {
+                    mergeSort(arr, l, m);
+                }
+                #pragma omp task
+                {
+                    mergeSort(arr, m + 1, r);
+                }
+            }
+        }
+
+        merge(arr, l, m, r);
+    }
+}
+
+int main() {
+    int arr[] = {12, 11, 13, 5, 6, 7};
+    int arr_size = sizeof(arr) / sizeof(arr[0]);
+
+    printf("Given array is \n");
+    for (int i = 0; i < arr_size; i++)
+        printf("%d ", arr[i]);
+
+    // Perform parallel merge sort using tasks
+    #pragma omp parallel
+    {
+        #pragma omp single
+        {
+            #pragma omp task
+            {
+                mergeSort(arr, 0, arr_size - 1);
+            }
+        }
+    }
+
+    printf("\nSorted array is \n");
+    for (int i = 0; i < arr_size; i++)
+        printf("%d ", arr[i]);
+
+    return 0;
+}
+
+
+
+
+
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <omp.h>
+
+void merge(int arr[], int l, int m, int r) {
+    int i, j, k;
+    int n1 = m - l + 1;
+    int n2 = r - m;
+
+    // create temporary arrays
+    int L[n1], R[n2];
+
+    // Copy data to temporary arrays L[] and R[]
+    for (i = 0; i < n1; i++)
+        L[i] = arr[l + i];
+    for (j = 0; j < n2; j++)
+        R[j] = arr[m + 1 + j];
+
+    // Merge the temporary arrays back into arr[l..r]
+    i = 0;  // Initial index of first subarray
+    j = 0;  // Initial index of second subarray
+    k = l;  // Initial index of merged subarray
+    while (i < n1 && j < n2) {
+        if (L[i] <= R[j]) {
+            arr[k] = L[i];
+            i++;
+        } else {
+            arr[k] = R[j];
+            j++;
+        }
+        k++;
+    }
+
+    // Copy the remaining elements of L[], if there are any
+    while (i < n1) {
+        arr[k] = L[i];
+        i++;
+        k++;
+    }
+
+    // Copy the remaining elements of R[], if there are any
+    while (j < n2) {
+        arr[k] = R[j];
+        j++;
+        k++;
+    }
+}
+
+void mergeSort(int arr[], int l, int r) {
+    if (l < r) {
+        int m = l + (r - l) / 2;
+
+        // Use OpenMP to parallelize the recursive calls
+        #pragma omp parallel sections
+        {
+            #pragma omp section
+            {
+                mergeSort(arr, l, m);
+            }
+            #pragma omp section
+            {
+                mergeSort(arr, m + 1, r);
+            }
+        }
+
+        merge(arr, l, m, r);
+    }
+}
+
+int main() {
+    int arr[] = {12, 11, 13, 5, 6, 7};
+    int arr_size = sizeof(arr) / sizeof(arr[0]);
+
+    printf("Given array is \n");
+    for (int i = 0; i < arr_size; i++)
+        printf("%d ", arr[i]);
+
+    // Perform parallel merge sort
+    #pragma omp parallel
+    {
+        #pragma omp single
+        {
+            mergeSort(arr, 0, arr_size - 1);
+        }
+    }
+
+    printf("\nSorted array is \n");
+    for (int i = 0; i < arr_size; i++)
+        printf("%d ", arr[i]);
+
+    return 0;
+}
+
